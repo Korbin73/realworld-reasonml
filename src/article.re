@@ -31,9 +31,10 @@ type action =
   | UnFollowUser(string)
   | FetchComments(list(comment));
 
-let show = ReasonReact.stringToElement;
+let show = ReasonReact.string;
 let component = ReasonReact.reducerComponent("Article");
-let renderComment = (reduce, index, comment) => {
+
+let renderComment = (self, index, comment ) => {
   <div className="card" key=(string_of_int(index))>
     <div className="card-block">
       <p className="card-text">
@@ -48,7 +49,7 @@ let renderComment = (reduce, index, comment) => {
       <a href="" className="comment-author"> (show(comment.author.username)) </a>
       <span className="date-posted"> (show(Js.Date.fromString(comment.createdAt) |> Js.Date.toDateString)) </span>
       <span className="mod-options">
-        <i className="ion-trash-a" onClick=(reduce((_event) => DeleteComment(comment.id)))/>
+        <i className="ion-trash-a" onClick=(_ => self.ReasonReact.send(DeleteComment(comment.id)))/>
       </span>
     </div>
   </div>
@@ -82,10 +83,10 @@ let decodeComment = (json) => {
   };
 };
 
-let followUser = (isFollowing, event) =>   
-  isFollowing ? 
-    UnFollowUser(ReactDOMRe.domElementToObj(ReactEventRe.Mouse.target(event))##value):
-    FollowUser(ReactDOMRe.domElementToObj(ReactEventRe.Mouse.target(event))##value);
+let followUser = (event, self) =>   
+  self.ReasonReact.state.isFollowing ? 
+    self.ReasonReact.send(UnFollowUser(ReactEvent.Mouse.target(event)##value)):
+    self.ReasonReact.send(FollowUser(ReactEvent.Mouse.target(event)##value));
 
 /* Add markdown parser to display properly
  */
@@ -93,7 +94,7 @@ let dangerousHtml : string => Js.t('a) = html => {
   "__html": html
 };
 
-let make = (~router, ~article, _children) => {
+let make = (~article, _children) => {
   ...component,
   initialState: () => {slug: article.slug, commentList: [], articleBody: article.body, isFollowing: article.author.following},
   reducer: (action, state) =>
@@ -114,13 +115,12 @@ let make = (~router, ~article, _children) => {
         let commentList = Json.Decode.{
           comments: parsedComments |> field("comments", list(decodeComment))
         };
-        self.reduce((_) => FetchComments(commentList.comments), ());
+        self.ReasonReact.send(FetchComments(commentList.comments));
         result |> Js.Promise.resolve
       })
     };
 
     JsonRequests.commentsForArticle(self.state.slug, reduceComments) |> ignore;
-    ReasonReact.NoUpdate
   },
   render: (self) => {
     <div className="article-page">
@@ -133,16 +133,16 @@ let make = (~router, ~article, _children) => {
               <a href="" className="author" > (show(article.author.username)) </a>
               <span className="date"> (show(Js.Date.fromString(article.createdAt) |> Js.Date.toDateString)) </span>
             </div>
-            <button className="btn btn-sm btn-outline-secondary" value=(article.author.username) onClick=(self.reduce(followUser(self.state.isFollowing)))>
+            <button className="btn btn-sm btn-outline-secondary" value=(article.author.username) onClick=(self.handle(followUser))>
               <i className="ion-plus-round" />
               (show(" "))
               (show((self.state.isFollowing ? "unfollow " : "follow ") ++ article.author.username))
               <span className="counter"> (show("(10)")) </span>
             </button>
-            (ReasonReact.stringToElement("  "))
+            (ReasonReact.string("  "))
             <button className="btn btn-sm btn-outline-primary">
               <i className="ion-heart" />
-              (ReasonReact.stringToElement(" "))
+              (ReasonReact.string(" "))
               (show("Favorite Post"))
               <span className="counter"> (show("(0)")) </span>
             </button>
@@ -163,7 +163,7 @@ let make = (~router, ~article, _children) => {
               <a href="" className="author"> (show(article.author.username)) </a>
               <span className="date"> (show(Js.Date.fromString(article.createdAt) |> Js.Date.toDateString)) </span>
             </div>
-            <button className="btn btn-sm btn-outline-secondary" value=(article.author.username) onClick=(self.reduce(followUser(self.state.isFollowing)))>
+            <button className="btn btn-sm btn-outline-secondary" value=(article.author.username) onClick=(self.handle(followUser))>
               <i className="ion-plus-round" />
               (show(" "))
               (show((self.state.isFollowing ? "unfollow " : "follow ") ++ article.author.username))
@@ -172,7 +172,7 @@ let make = (~router, ~article, _children) => {
             (show(" "))
             <button className="btn btn-sm btn-outline-primary">
               <i className="ion-heart" />
-              (ReasonReact.stringToElement(" "))
+              (ReasonReact.string(" "))
               (show("Favorite Post"))
               <span className="counter"> (show("(0)")) </span>
             </button>
@@ -189,7 +189,7 @@ let make = (~router, ~article, _children) => {
                 <button className="btn btn-sm btn-primary"> (show("Post Comment")) </button>
               </div>
             </form>
-            {List.mapi(renderComment(self.reduce), self.state.commentList) |> Array.of_list |> ReasonReact.arrayToElement}
+            {List.mapi(renderComment(self), self.state.commentList) |> Array.of_list |> ReasonReact.array}
           </div>
         </div>
       </div>

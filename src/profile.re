@@ -1,6 +1,7 @@
 open Models;
+open Utils;
 
-let show = ReasonReact.stringToElement;
+let show = ReasonReact.string;
 
 type state = {
   myArticles: array(article),
@@ -87,39 +88,38 @@ let reduceMyArtcles = (reduceFunc, _status, payload) => {
 
 };
 
-let clickMyArticles = (event, {ReasonReact.state, reduce}) => {
-  ReactEventRe.Mouse.preventDefault(event);
-  let reduceFunc = (articles) => reduce((_) => MyArticles(articles),());
+let clickMyArticles = (event, self) => {
+  event->ReactEvent.Mouse.preventDefault;
+  let reduceFunc = (articles) => self.ReasonReact.send(MyArticles(articles));
 
-  JsonRequests.getMyArticles(reduceMyArtcles(reduceFunc), state.username, Effects.getTokenFromStorage())
+  JsonRequests.getMyArticles(reduceMyArtcles(reduceFunc), self.ReasonReact.state.username, Effects.getTokenFromStorage())
   |> ignore;
 
-  reduce((_) => PendingMyArticles, ())
+  self.ReasonReact.send(PendingMyArticles)
 };
 
-let clickProfileSettings = (router, event, {ReasonReact.state: _state}) => {
-  ReactEventRe.Mouse.preventDefault(event);
-  DirectorRe.setRoute(router,"/settings")
+let clickProfileSettings = (event, _self) => {
+  navigateTo("/settings", event); 
 };
 
-let clickMyFavorites = (event, {ReasonReact.state, reduce}) => {
-  ReactEventRe.Mouse.preventDefault(event);
-  let reduceFunc = (articles) => reduce((_) => FavoriteArticle(articles),());
-  JsonRequests.getFavoritedArticles(reduceMyArtcles(reduceFunc), state.username, Effects.getTokenFromStorage())
+let clickMyFavorites = (event, self) => {
+  event->ReactEvent.Mouse.preventDefault;
+  let reduceFunc = (articles) => self.ReasonReact.send(FavoriteArticle(articles));
+  JsonRequests.getFavoritedArticles(reduceMyArtcles(reduceFunc), self.ReasonReact.state.username, Effects.getTokenFromStorage())
   |> ignore;
 
-  reduce((_) => PendingFavoriteArticles, ())
+  self.ReasonReact.send(PendingFavoriteArticles)
 };
 
 /* side effect */
-let reduceByAuthArticles = ({ReasonReact.state, reduce}, _status, jsonPayload) =>  {
+let reduceByAuthArticles = (self, _status, jsonPayload) =>  {
   jsonPayload |> Js.Promise.then_((payload) => {
     let jsonArticles = Js.Json.parseExn(payload);
     let articleCount = Json.Decode.(jsonArticles |> field("articlesCount", int));
 
     switch articleCount {
-      | count when count > 0 => reduce((_) => MyArticles(extractArticleList(jsonArticles)), ())
-      | _ => reduce((_) => NoData, ())
+      | count when count > 0 => self.ReasonReact.send(MyArticles(extractArticleList(jsonArticles)))
+      | _ => self.ReasonReact.send(NoData)
     };
 
     payload |> Js.Promise.resolve;
@@ -127,10 +127,9 @@ let reduceByAuthArticles = ({ReasonReact.state, reduce}, _status, jsonPayload) =
 };
 
 /* These functions were copied from  */
-let goToArticle = (router, articleCallback, article, event, {ReasonReact.state}) => {
-  ReactEventRe.Mouse.preventDefault(event);
+let goToArticle = (articleCallback, article, event, _self) => {
   articleCallback(article);
-  DirectorRe.setRoute(router,"/article")
+  navigateTo("/article", event)
 };
 
 let displayImage =
@@ -138,7 +137,7 @@ let displayImage =
   | Some(image) => image
   | None => "";
 
-let renderArticle = (handle, router, articleCallback, isFavorites, index, article) =>
+let renderArticle = (self, articleCallback, isFavorites, index, article) =>
   <div key=(string_of_int(index)) className="article-preview">
     <div>
       <div className="article-meta">
@@ -156,7 +155,7 @@ let renderArticle = (handle, router, articleCallback, isFavorites, index, articl
           (show(string_of_int(article.favoritesCount)))
         </button>
       </div>
-      <a href="#" onClick=(handle(goToArticle(router, articleCallback, article))) className="preview-link">
+      <a href="#" onClick=(self.ReasonReact.handle(goToArticle(articleCallback, article))) className="preview-link">
         <h1>
           (show(article.title))
         </h1>
@@ -167,7 +166,7 @@ let renderArticle = (handle, router, articleCallback, isFavorites, index, articl
   </div>;
 
 let component = ReasonReact.reducerComponent("Profile");
-let make = (~articleCallback, ~router, _children) => {
+let make = (~articleCallback, _children) => {
   ...component,
   initialState: () => initialState,
   reducer: (action, state) =>
@@ -202,11 +201,10 @@ let make = (~articleCallback, ~router, _children) => {
     let token = Effects.getTokenFromStorage();
 
     JsonRequests.getMyArticles(reduceByAuthArticles(self), currentUsername, token) |> ignore;
-    self.reduce((_) => CurrentUserFetched((currentUsername, currentBio, currentImage)), ());
-    ReasonReact.NoUpdate
+    self.ReasonReact.send(CurrentUserFetched((currentUsername, currentBio, currentImage)));
   },
   render: (self) => {
-    let {ReasonReact.state, reduce} = self;
+    let {ReasonReact.state} = self;
     <div className="profile-page">
       <div className="user-info">
         <div className="container">
@@ -219,7 +217,7 @@ let make = (~articleCallback, ~router, _children) => {
                   show(state.bio)
                 )
               </p>
-              <button className="btn btn-sm btn-outline-secondary action-btn" onClick=(self.handle(clickProfileSettings(router)))>
+              <button className="btn btn-sm btn-outline-secondary action-btn" onClick={self.handle(clickProfileSettings)}>
                 <i className="ion-plus-round" />
                 (show("Edit Profile Settings"))
               </button>
@@ -240,11 +238,11 @@ let make = (~articleCallback, ~router, _children) => {
                 </li>
               </ul>
             </div>
-            <div style=(state.isMyArticleDisplay)>
-              {Array.mapi(renderArticle(self.handle, router, articleCallback, false), state.myArticles) |>  ReasonReact.arrayToElement}
+            <div style=(self.state.isMyArticleDisplay)>
+              {Array.mapi(renderArticle(self, articleCallback, false), state.myArticles) |>  ReasonReact.array}
             </div>
-            <div style=(state.isFavArticleDisplay)>
-              {Array.mapi(renderArticle(self.handle, router, articleCallback, true), state.favoriteArticles) |>  ReasonReact.arrayToElement}
+            <div style=(self.state.isFavArticleDisplay)>
+              {Array.mapi(renderArticle(self, articleCallback, true), state.favoriteArticles) |>  ReasonReact.array}
             </div>
           </div>
         </div>

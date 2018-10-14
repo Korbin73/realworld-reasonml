@@ -1,4 +1,5 @@
 open JsonRequests;
+open Utils;
 
 type action =
   | Login
@@ -29,11 +30,11 @@ module Encode = {
 
 let component = ReasonReact.reducerComponent("Register");
 
-let show = ReasonReact.stringToElement;
+let show = ReasonReact.string;
 
-let register = (route, {ReasonReact.state, reduce}, event) => {
-  ReactEventRe.Mouse.preventDefault(event);
-  let jsonRequest = Encode.user(state);
+let register = (event, self) => {
+  event->ReactEvent.Mouse.preventDefault;
+  let jsonRequest = Encode.user(self.ReasonReact.state);
   let updateState = (_status, jsonPayload) =>
     jsonPayload
     |> Js.Promise.then_(
@@ -42,40 +43,36 @@ let register = (route, {ReasonReact.state, reduce}, event) => {
            let updatedState =
              switch newUser.errors {
              | Some(_user) =>
-               DirectorRe.setRoute(route, "/home");
-               {...state, hasValidationError: false}
+               ReasonReact.Router.push("/home");
+               {...self.ReasonReact.state, hasValidationError: false}
              | None => {
-                 ...state,
+                 ...self.ReasonReact.state,
                  hasValidationError: true,
                  errorList: newUser |> Convert.toErrorListFromResponse
                }
              };
-           reduce(
-             (_payload) => Register((updatedState.hasValidationError, updatedState.errorList)),
-             "this came back from promise"
-           )
+           self.ReasonReact.send(Register((updatedState.hasValidationError, updatedState.errorList)))
            |> Js.Promise.resolve
          }
        );
   JsonRequests.registerNewUser(updateState, jsonRequest) |> ignore;
-  Register((false, ["Hitting server."]))
+  self.ReasonReact.send(Register((false, ["Hitting server."])))
 };
 
-let goToLogin = (router, event) => {
-  ReactEventRe.Mouse.preventDefault(event);
-  DirectorRe.setRoute(router, "/login")
+let goToLogin = (event, _self) => {
+  navigateTo("/login", event)
 };
 
 let login = (_event) => Login;
 
-let updateName = (event) =>
-  NameUpdate(ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value);
+let updateName = (event, {ReasonReact.send}) =>
+  send(NameUpdate(ReactEvent.Form.target(event)##value));
 
-let updateEmail = (event) =>
-  EmailUpdate(ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value);
+let updateEmail = (event, {ReasonReact.send}) =>
+  send(EmailUpdate(ReactEvent.Form.target(event)##value));
 
-let updatePassword = (event) =>
-  PasswordUpdate(ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value);
+let updatePassword = (event, {ReasonReact.send}) =>
+  send(PasswordUpdate(ReactEvent.Form.target(event)##value));
 
 let errorDisplayList = (state) =>
   List.filter((errorMessage) => String.length(errorMessage) > 0, state.errorList)
@@ -87,7 +84,7 @@ let errorDisplayList = (state) =>
      );
 
 /* TODO: use the route to go the next home screen when registered successfully */
-let make = (~router, _children) => {
+let make = (_children) => {
   ...component,
   initialState: () => {
     username: "",
@@ -106,52 +103,52 @@ let make = (~router, _children) => {
       ReasonReact.Update({...state, hasValidationError: hasError, errorList})
     },
   render: (self) => {
-    let {ReasonReact.state, reduce} = self;
+    let {ReasonReact.state, handle} = self;
     <div className="auth-page">
       <div className="container page">
         <div className="row">
           <div className="col-md-6 offset-md-3 col-xs-12">
             <h1 className="text-xs-center"> (show("Sign up")) </h1>
             <p className="text-xs-center">
-              <a href="#" onClick=(goToLogin(router))> (show("Have an account?")) </a>
+              <a href="#" onClick={self.handle(goToLogin)}> (show("Have an account?")) </a>
             </p>
             (
               if (state.hasValidationError) {
-                Array.of_list(errorDisplayList(state)) |> ReasonReact.arrayToElement
+                Array.of_list(errorDisplayList(state)) |> ReasonReact.array
               } else {
-                ReasonReact.nullElement
+                ReasonReact.null
               }
             )
             <form>
               <fieldset className="form-group">
                 <input
-                  _type="text"
+                  type_="text"
                   className="form-control form-control-lg"
                   placeholder="Your Name"
                   value=state.username
-                  onChange=(reduce(updateName))
+                  onChange=(self.handle(updateName))
                 />
               </fieldset>
               <fieldset className="form-group">
                 <input
-                  _type="text"
+                  type_="text"
                   className="form-control form-control-lg"
                   placeholder="Email"
                   value=state.email
-                  onChange=(reduce(updateEmail))
+                  onChange=(self.handle(updateEmail))
                 />
               </fieldset>
               <fieldset className="form-group">
                 <input
-                  _type="password"
+                  type_="password"
                   className="form-control form-control-lg"
                   placeholder="Password"
                   value=state.password
-                  onChange=(reduce(updatePassword))
+                  onChange=(self.handle(updatePassword))
                 />
               </fieldset>
               <button
-                onClick=(reduce(register(router, self)))
+                onClick=(self.handle(register))
                 className="btn btn-lg btn-primary pull-xs-right">
                 (show("Sign up"))
               </button>

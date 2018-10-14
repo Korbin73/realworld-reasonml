@@ -1,6 +1,7 @@
 open Models;
+open Utils;
 
-let show = ReasonReact.stringToElement;
+let show = ReasonReact.string;
 
 type action =
   | TagsFetched(array(string))
@@ -43,8 +44,8 @@ let initialState = () => {
   favoritedArticleSlug: ""
 };
 
-let showTaggedArticles = (event) =>
-  ShowTagList(ReactDOMRe.domElementToObj(ReactEventRe.Mouse.target(event))##innerText);
+let showTaggedArticles = (event, self) =>
+  self.ReasonReact.send(ShowTagList(ReactEvent.Mouse.target(event)##innerText));
 
 /* article page uses this decoder as well */
 let decodeAuthor = (json) =>
@@ -70,13 +71,13 @@ let decodeArticles = (json) => {
   };
 };
 
-let populateTags = (reduce) => {
+let populateTags = ({ReasonReact.send}) => {
   let reduceTags = (_status, jsonPayload) => {
 
     jsonPayload |> Js.Promise.then_((result) => {
       let parsedPopularTags = Js.Json.parseExn(result);
       let tags = Json.Decode.(parsedPopularTags |> field("tags", array(string)));
-      reduce((_) => TagsFetched(tags), ());
+      send(TagsFetched(tags));
 
       tags |> Js.Promise.resolve
     }) |> ignore;
@@ -98,39 +99,37 @@ let reduceFeed = (reduceToAction, _state, jsonPayload) => {
   })
 };
 
-let populateGlobalFeed = (reduce, pageNumber) => {
-  let reduceFunc = (articleList) => reduce((_) => ArticlesFetched(articleList), ());
+let populateGlobalFeed = (self, pageNumber) => {
+  let reduceFunc = (articleList) => self.ReasonReact.send(ArticlesFetched(articleList));
 
   /* Get the right page if there are more than 10 articles */
   JsonRequests.getGlobalArticles(reduceFeed(reduceFunc), Effects.getTokenFromStorage(), 10, pageNumber * 10) |> ignore;
 };
 
-let populateFeed = (reduce) => {
-  let reduceFunc = (articleList) => reduce((_) => MyArticlesFetched(articleList), ());
+let populateFeed = (self) => {
+  let reduceFunc = (articleList) => self.ReasonReact.send(MyArticlesFetched(articleList));
   JsonRequests.getFeed(Effects.getTokenFromStorage(), reduceFeed(reduceFunc)) |> ignore
 };
 
-let showMyFeed = (event, {ReasonReact.state: _state, reduce}) => {
-  ReactEventRe.Mouse.preventDefault(event);
-  populateFeed(reduce);
-  reduce((_) => ShowMyFeed,());
+let showMyFeed = (event, self) => {
+  event->ReactEvent.Mouse.preventDefault;
+  populateFeed(self);
+  self.ReasonReact.send(ShowMyFeed);
 };
 
-let showGlobalFeed = (event, {ReasonReact.state: _state, reduce}) => {
-  ReactEventRe.Mouse.preventDefault(event);
-  populateGlobalFeed(reduce, 0);
-  reduce((_) => ShowGlobalFeed,());
+let showGlobalFeed = (event, self) => {
+  event->ReactEvent.Mouse.preventDefault;
+  populateGlobalFeed(self, 0);
+  self.ReasonReact.send(ShowGlobalFeed);
 };
 
-let goToArticle = (router, articleCallback, article, event, {ReasonReact.state: _state}) => {
-  ReactEventRe.Mouse.preventDefault(event);
+let goToArticle = (articleCallback, article, event, _self) => {
   articleCallback(article);
-  DirectorRe.setRoute(router,"/article")
+  navigateTo("/article", event)
 };
 
-let goToProfile = (router, event, {ReasonReact.state: _state}) => {
-  ReactEventRe.Mouse.preventDefault(event);
-  DirectorRe.setRoute(router,"/profile")
+let goToProfile = (event, _self) => {
+  navigateTo("/profile", event)
 };
 
 let updateFavoritedCount = (articles, currentSlug) => {
@@ -146,8 +145,8 @@ let updateFavoritedCount = (articles, currentSlug) => {
   Array.map(updateCurrentArticle, articles);
 };
 
-let renderTag = ({ReasonReact.state: _state, reduce}, index, tag) => {
-  <a onClick=(reduce(showTaggedArticles)) href="#" key=(string_of_int(index)) className="tag-pill tag-default"> (show(tag)) </a>
+let renderTag = (self, index, tag) => {
+  <a onClick=(self.ReasonReact.handle(showTaggedArticles)) href="#" key=(string_of_int(index)) className="tag-pill tag-default"> (show(tag)) </a>
 };
 
 let renderArticleTag = (index, tag) => {
@@ -163,19 +162,19 @@ let rec range = (a, b) =>
     [a, ...range(a + 1, b)]
   };
 
-let renderPager = ({ReasonReact.state: _state, reduce, ReasonReact.handle: handle}, articleCount) => {
+let renderPager = (self, articleCount) => {
   let pageRanges = articleCount/10 |> range(1);
   let reduceArticles = (currentPageNumber, event, _self) => {
-    ReactEventRe.Mouse.preventDefault(event);
-    reduce((_) => ArticlesByPage(currentPageNumber), ())
+    ReactEvent.Mouse.preventDefault(event);
+    self.ReasonReact.send(ArticlesByPage(currentPageNumber))
   };
 
   /* Add the logic to highlight the current page */
   List.map((currentPageNumber) => {
     <li className="page-item ng-scope" key=(string_of_int(currentPageNumber))>
-      <a className="page-link ng-binding" href="" onClick=(handle(reduceArticles(currentPageNumber)))>(show(string_of_int(currentPageNumber)))</a>
+      <a className="page-link ng-binding" href="" onClick=(self.ReasonReact.handle(reduceArticles(currentPageNumber)))>(show(string_of_int(currentPageNumber)))</a>
     </li>
-  }, pageRanges) |> Array.of_list  |> ReasonReact.arrayToElement
+  }, pageRanges) |> Array.of_list  |> ReasonReact.array
 };
 
 let displayImage =
@@ -183,28 +182,28 @@ let displayImage =
   | Some(image) => image
   | None => "";
 
-let renderArticle = ({ReasonReact.state: _state, reduce}, handle, router, articleCallback, index, article) => {
+let renderArticle = (self, articleCallback, index, article) => {
   <div key=(string_of_int(index)) className="article-preview">
     <div>
       <div className="article-meta">
-        <a href="#" onClick=(handle(goToProfile(router)))> <img src=(displayImage(article.author.image))/> </a>
+        <a href="#" onClick=(self.ReasonReact.handle(goToProfile))> <img src=(displayImage(article.author.image))/> </a>
         <div className="info">
-          <a href="#" onClick=(handle(goToProfile(router))) className="author"> (show(article.author.username)) </a>
+          <a href="#" onClick={self.ReasonReact.handle(goToProfile)} className="author"> (show(article.author.username)) </a>
           <span className="date"> (show(Js.Date.fromString(article.createdAt) |> Js.Date.toDateString)) </span>
         </div>
-        <button className="btn btn-outline-primary btn-sm pull-xs-right" onClick=(reduce((_) => FavoriteArticle(article.slug, article.favorited)))>
+        <button className="btn btn-outline-primary btn-sm pull-xs-right" onClick=(_=> self.ReasonReact.send(FavoriteArticle(article.slug, article.favorited)))>
           <i className="ion-heart" />
           (show(string_of_int(article.favoritesCount)))
         </button>
       </div>
-      <a href="#" onClick=(handle(goToArticle(router, articleCallback, article))) className="preview-link">
+      <a href="#" onClick={self.ReasonReact.handle(goToArticle(articleCallback, article))} className="preview-link">
         <h1>
           (show(article.title))
         </h1>
         <p> (show(article.description)) </p>
         <span> (show("Read more...")) </span>
         <ul className="tag-list">
-          {Array.mapi(renderArticleTag, article.tagList) |> ReasonReact.arrayToElement}
+          {Array.mapi(renderArticleTag, article.tagList) |> ReasonReact.array}
         </ul>
       </a>
     </div>
@@ -213,7 +212,7 @@ let renderArticle = ({ReasonReact.state: _state, reduce}, handle, router, articl
 
 let component = ReasonReact.reducerComponent("Home");
 
-let make = (~articleCallback, ~router, _children) => {
+let make = (~articleCallback, _children) => {
   ...component,
   initialState: initialState,
   reducer: (action, state) =>
@@ -265,7 +264,7 @@ let make = (~articleCallback, ~router, _children) => {
       globalfeedActiveClass: "nav-link disabled",
       tagFeedActiveClass: "nav-link active"
     }, (self) => {
-      let reduceFunc = (articleList) => self.reduce((_) => TagArticlesFetched(articleList), ());
+      let reduceFunc = (articleList) => self.ReasonReact.send(TagArticlesFetched(articleList));
       JsonRequests.getArticlesByTag(reduceFeed(reduceFunc), currentTagName, Effects.getTokenFromStorage()) |> ignore;
     })
     | FavoriteArticle(slug, isCurrentlyFav) => ReasonReact.UpdateWithSideEffects({
@@ -278,15 +277,14 @@ let make = (~articleCallback, ~router, _children) => {
       };
     })
     | ArticlesByPage(currentPage) => ReasonReact.SideEffects((self) => {
-      let reduceFunc = (articleList) => self.reduce((_) => ArticlesFetched(articleList), ());
+      let reduceFunc = (articleList) => self.ReasonReact.send(ArticlesFetched(articleList));
       JsonRequests.getGlobalArticles(reduceFeed(reduceFunc), Effects.getTokenFromStorage(), 10, currentPage * 10) |> ignore;
     })
 
     },
   didMount: (self) => {
-    populateTags(self.reduce);
-    populateGlobalFeed(self.reduce, 0);
-    ReasonReact.NoUpdate
+    populateTags(self);
+    populateGlobalFeed(self, 0);
   },
   render: (self) => {
     let {ReasonReact.state} = self;
@@ -315,13 +313,13 @@ let make = (~articleCallback, ~router, _children) => {
               </ul>
             </div>
             <div style=(state.myFeedDisplay)>
-              {Array.mapi(renderArticle(self, self.handle, router, articleCallback), state.articles) |> ReasonReact.arrayToElement}
+              {Array.mapi(renderArticle(self, articleCallback), state.articles) |> ReasonReact.array}
             </div>
             <div style=(state.globalFeedDisplay)>
-              {Array.mapi(renderArticle(self, self.handle, router, articleCallback), state.articles) |> ReasonReact.arrayToElement}
+              {Array.mapi(renderArticle(self, articleCallback), state.articles) |> ReasonReact.array}
             </div>
             <div style=(state.tagFeedDisplay)>
-              {Array.mapi(renderArticle(self, self.handle, router, articleCallback), state.articles) |> ReasonReact.arrayToElement}
+              {Array.mapi(renderArticle(self, articleCallback), state.articles) |> ReasonReact.array}
             </div>
             <div>
               <nav>
@@ -335,7 +333,7 @@ let make = (~articleCallback, ~router, _children) => {
             <div className="sidebar">
               <p> (show("Popular Tags")) </p>
               <div className="tag-list" >
-                (Array.mapi(renderTag(self),state.tags) |> ReasonReact.arrayToElement)
+                (Array.mapi(renderTag(self),state.tags) |> ReasonReact.array)
               </div>
             </div>
           </div>

@@ -1,4 +1,4 @@
-let renderForRoute = (route, router) =>
+/* let renderForRoute = (route, router) =>
   ReactDOMRe.renderToElementWithId(<Body route router />, "root");
 
 let router =
@@ -28,4 +28,6 @@ let handlers = {
 
 DirectorRe.configure(router, {"html5history": true, "resource": handlers});
 
-DirectorRe.init(router, "/");
+DirectorRe.init(router, "/"); */
+
+ReactDOMRe.renderToElementWithId(<Body />, "root");

@@ -1,4 +1,6 @@
-let show = ReasonReact.stringToElement;
+open Utils;
+
+let show = ReasonReact.string;
 
 type state = {
   email: string,
@@ -13,9 +15,8 @@ type action =
   | PasswordUpdate(string)
   | LoginPending;
 
-let goToRegister = (router, event) => {
-  ReactEventRe.Mouse.preventDefault(event);
-  DirectorRe.setRoute(router, "/register")
+let goToRegister = (event, self) => {
+  navigateTo("/register", event)
 };
 
 module Encode = {
@@ -30,11 +31,11 @@ module Encode = {
     Json.Encode.([("username", string(username)), ("bio", string(bio))]);
 };
 
-let updateEmail = (event) =>
-  EmailUpdate(ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value);
+let updateEmail = (event, self) =>
+  self.ReasonReact.send(EmailUpdate(ReactEvent.Form.target(event)##value));
 
-let updatePassword = (event) =>
-  PasswordUpdate(ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value);
+let updatePassword = (event, self) =>
+  self.ReasonReact.send(PasswordUpdate(ReactEvent.Form.target(event)##value));
 
 let errorDisplayList = (state) =>
   List.filter((errorMessage) => String.length(errorMessage) > 0, state.errorList)
@@ -45,8 +46,8 @@ let errorDisplayList = (state) =>
          </ul>
      );
 
-let loginUser = (route, event, {ReasonReact.state, reduce}) => {
-  ReactEventRe.Mouse.preventDefault(event);
+/* let loginUser = (event, self) => {
+  ReactEvent.Mouse.preventDefault(event);
   let reduceByAuthResult = (_status, jsonPayload) =>
     jsonPayload
     |> Js.Promise.then_(
@@ -55,30 +56,61 @@ let loginUser = (route, event, {ReasonReact.state, reduce}) => {
            let updatedState =
              switch newUser {
              | Some(errors) => {
-                 ...state,
+                 ...self.ReasonReact.state,
                  hasValidationError: true,
                  errorList: errors |> JsonRequests.convertErrorsToList
                }
              | None =>
                let loggedIn = JsonRequests.parseNewUser(json);
                Effects.saveTokenToStorage(loggedIn.user.token);
-               Effects.saveUserToStorage(loggedIn.user.username, loggedIn.user.bio);
-               DirectorRe.setRoute(route, "/home");
-               {...state, hasValidationError: false}
+               Effects.saveUserToStorage(loggedIn.user.username, loggedIn.user.bio, "");
+               ReasonReact.Router.push("/home");
+               {...self.ReasonReact.state, hasValidationError: false}
              };
            /* TODO: Create a reducer to do nothing with succesful login so the state doesn't try to update */
            let callLoginReducer = (_payload) => Login((updatedState.hasValidationError, updatedState.errorList));
-           reduce(callLoginReducer ,())
+           self.ReasonReact.send(callLoginReducer)
            |> Js.Promise.resolve
          }
        );
-  JsonRequests.authenticateUser(reduceByAuthResult, Encode.user(state)) |> ignore;
-  reduce((_) => LoginPending, ())
+  JsonRequests.authenticateUser(reduceByAuthResult, Encode.user(self.ReasonReact.state)) |> ignore;
+  self.ReasonReact.send(LoginPending)
+}; */
+
+let reduceByAuthResult = (self, _status, jsonPayload) =>
+  jsonPayload
+  |> Js.Promise.then_(
+     (json) => {
+       let newUser = JsonRequests.checkForErrors(json);
+       let updatedState =
+         switch newUser {
+         | Some(errors) => {
+             ...self.ReasonReact.state,
+             hasValidationError: true,
+             errorList: errors |> JsonRequests.convertErrorsToList
+           }
+         | None =>
+           let loggedIn = JsonRequests.parseNewUser(json);
+           Effects.saveTokenToStorage(loggedIn.user.token);
+           Effects.saveUserToStorage(loggedIn.user.username, loggedIn.user.bio, "");
+           ReasonReact.Router.push("/home");
+           {...self.ReasonReact.state, hasValidationError: false}
+         };
+       /* TODO: Create a reducer to do nothing with succesful login so the state doesn't try to update */  
+       self.ReasonReact.send(Login((updatedState.hasValidationError, updatedState.errorList)))
+       |> Js.Promise.resolve
+     }
+   );
+
+let loginCurrentUser = (event, self) => {
+  ReactEvent.Mouse.preventDefault(event);
+  JsonRequests.authenticateUser(reduceByAuthResult(self), Encode.user(self.ReasonReact.state)) |> ignore;
+  self.ReasonReact.send(LoginPending)
 };
 
 let component = ReasonReact.reducerComponent("Login");
 
-let make = (~router, _children) => {
+let make = (_children) => {
   ...component,
   initialState: () => {email: "", password: "", hasValidationError: false, errorList: []},
   reducer: (action, state) =>
@@ -89,43 +121,43 @@ let make = (~router, _children) => {
     | LoginPending => ReasonReact.NoUpdate
     },
   render: (self) => {
-    let {ReasonReact.state, reduce} = self;
+    let {ReasonReact.state, handle} = self;
     <div className="auth-page">
       <div className="container page">
         <div className="row">
           <div className="col-md-6 offset-md-3 col-xs-12">
             <h1 className="text-xs-center"> (show("Sign in")) </h1>
             <p className="text-xs-center">
-              <a href="#" onClick=(goToRegister(router))> (show("Need an account?")) </a>
+              <a href="#" onClick={handle(goToRegister)}> (show("Need an account?")) </a>
             </p>
             (
               if (state.hasValidationError) {
-                Array.of_list(errorDisplayList(state)) |> ReasonReact.arrayToElement
+                Array.of_list(errorDisplayList(state)) |> ReasonReact.array
               } else {
-                ReasonReact.nullElement
+                ReasonReact.null
               }
             )
             <form>
               <fieldset className="form-group">
                 <input
-                  _type="text"
+                  type_="text"
                   className="form-control form-control-lg"
                   placeholder="Email"
                   value=state.email
-                  onChange=(reduce(updateEmail))
+                  onChange=(self.handle(updateEmail))
                 />
               </fieldset>
               <fieldset className="form-group">
                 <input
-                  _type="password"
+                  type_="password"
                   className="form-control form-control-lg"
                   placeholder="Password"
                   value=state.password
-                  onChange=(reduce(updatePassword))
+                  onChange=(self.handle(updatePassword))
                 />
               </fieldset>
               <button
-                onClick=(self.handle(loginUser(router)))
+                onClick=(self.ReasonReact.handle(loginCurrentUser))
                 className="btn btn-lg btn-primary pull-xs-right">
                 (show("Sign in"))
               </button>

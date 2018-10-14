@@ -6,25 +6,22 @@
     "build": "bsb -make-world",
     "watch": "bsb -make-world -w",
     "test": "jest",
-    "webpack": "webpack",
-    "webpack-dev": "webpack-dev-server"
+    "start": "parcel ./public/index.html",
+    "start-watch": "parcel watch public/index.html"
   },
   "keywords": [
     "BuckleScript"
   ],
   "license": "MIT",
-  "devDependencies": {
-    "bs-jest": "^0.1.0",
-    "bs-platform": "^2.0"
-  },
   "dependencies": {
-    "bs-axios": "^0.0.16",
-    "bs-director": "^0.0.4",
-    "bs-fetch": "^0.1.1",
-    "bs-json": "^0.2.1",
-    "express": "^4.15.4",
-    "reason-react": "^0.2.4",
-    "webpack": "^3.5.6",
-    "webpack-dev-server": "^2.7.1"
+    "@glennsl/bs-json": "^3.0.0",
+    "bs-fetch": "^0.3.0",
+    "react": "^16.5.2",
+    "react-dom": "^16.5.2",
+    "reason-react": "^0.5.3"
+  },
+  "devDependencies": {
+    "@glennsl/bs-jest": "^0.3.2",
+    "bs-platform": "^4.0.6"
   }
 }

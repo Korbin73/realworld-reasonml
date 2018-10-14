@@ -9,12 +9,10 @@
   ],
   "bs-dependencies" : [
       // add your dependencies here. You'd usually install them normally through `npm install my-dependency`. If my-dependency has a bsconfig.json too, then everything will work seamlessly.
-      "bs-jest",
+      "@glennsl/bs-jest",
       "reason-react",
-      "bs-director",
       "bs-fetch",
-      "bs-json",
-      "bs-axios"
+      "@glennsl/bs-json"
   ],
   "bsc-flags": ["-bs-no-version-header", "-bs-super-errors"],
   "reason": {

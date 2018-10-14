@@ -1,6 +1,6 @@
 let component = ReasonReact.statelessComponent("Footer");
 
-let show = ReasonReact.stringToElement;
+let show = ReasonReact.string;
 
 let conduit_message = () =>
   <div>

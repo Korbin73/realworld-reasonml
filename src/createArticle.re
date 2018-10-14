@@ -1,4 +1,4 @@
-let show = ReasonReact.stringToElement;
+let show = ReasonReact.string;
 
 type state = {
   title: string,
@@ -8,7 +8,7 @@ type state = {
 };
 
 type action =
-  | ArticleSubmitted(DirectorRe.t)
+  | ArticleSubmitted
   | UpdateTitle(string)
   | UpdateDescription(string)
   | UpdateBody(string)
@@ -31,32 +31,31 @@ let submissionResponse = (_status, payload) => {
   payload |> Js.Promise.then_((result) => Js.log(result) |> Js.Promise.resolve)
 };  
 
-let submitNewArticle = (router, event, {ReasonReact.state, reduce}) => {
-  ReactEventRe.Mouse.preventDefault(event);
-  JsonRequests.submitNewArticle(submissionResponse, Encode.newArticle(state) , Effects.getTokenFromStorage()) |> ignore;
-  let reduceArticleSubmission = (_) => ArticleSubmitted(router);
-  reduce(reduceArticleSubmission, ())
+let submitNewArticle = (event, self) => {
+  ReactEvent.Mouse.preventDefault(event);
+  JsonRequests.submitNewArticle(submissionResponse, Encode.newArticle(self.ReasonReact.state) , Effects.getTokenFromStorage()) |> ignore;
+  self.ReasonReact.send(ArticleSubmitted);
 };
 
-let updateTitle = (event) =>
-  UpdateTitle(ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value);
-let updateDescription = (event) =>
-  UpdateDescription(ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value);
-let updateBody = (event) =>
-  UpdateBody(ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value);
-let updateTags = (event) =>
-  UpdateTags(ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value);
+let updateTitle = (event, self) =>
+  self.ReasonReact.send(UpdateTitle(ReactEvent.Form.target(event)##value));
+let updateDescription = (event, self) =>
+  self.ReasonReact.send(UpdateDescription(ReactEvent.Form.target(event)##value));
+let updateBody = (event, self) =>
+  self.ReasonReact.send(UpdateBody(ReactEvent.Form.target(event)##value));
+let updateTags = (event, self) =>
+  self.ReasonReact.send(UpdateTags(ReactEvent.Form.target(event)##value));
 
 /* TODO: Add validation for body and title to be required */
 
 let component = ReasonReact.reducerComponent("CreateArticle");
-let make = (~router,_children) => {
+let make = (_children) => {
   ...component,
   initialState: () => {title:"",description: "", articleBody: "", rawTags: ""},
   reducer: (action, state) =>
     switch action {
-    | ArticleSubmitted(router) => ReasonReact.SideEffects((_self) => {
-      DirectorRe.setRoute(router, "/home")
+    | ArticleSubmitted => ReasonReact.SideEffects((_self) => {
+      ReasonReact.Router.push("/home")
     })
     | UpdateTitle(title) => ReasonReact.Update({...state, title: title})
     | UpdateDescription(description) => ReasonReact.Update({...state, description: description})
@@ -72,20 +71,20 @@ let make = (~router,_children) => {
               <fieldset>
                 <fieldset className="form-group">
                   <input
-                    _type="text"
+                    type_="text"
                     className="form-control form-control-lg"
                     placeholder="Article Title"
                     value=(self.state.title)
-                    onChange=(self.reduce(updateTitle))
+                    onChange=(self.handle(updateTitle))
                   />
                 </fieldset>
                 <fieldset className="form-group">
                   <input
-                    _type="text"
+                    type_="text"
                     className="form-control"
                     placeholder="What's this article about?"
                     value=(self.state.description)
-                    onChange=(self.reduce(updateDescription))
+                    onChange=(self.handle(updateDescription))
                   />
                 </fieldset>
                 <fieldset className="form-group">
@@ -94,20 +93,20 @@ let make = (~router,_children) => {
                     rows=8
                     placeholder="Write your article (in markdown)"
                     value=(self.state.articleBody)
-                    onChange=(self.reduce(updateBody))
+                    onChange=(self.handle(updateBody))
                   />
                 </fieldset>
                 <fieldset className="form-group">
                   <input 
-                    _type="text" 
+                    type_="text" 
                     className="form-control" 
                     placeholder="Enter tags" 
                     value=(self.state.rawTags) 
-                    onChange=(self.reduce(updateTags))
+                    onChange=(self.handle(updateTags))
                   />
                   <div className="tag-list" />
                 </fieldset>
-                <button className="btn btn-lg pull-xs-right btn-primary" _type="button" onClick=(self.handle(submitNewArticle(router)))>
+                <button className="btn btn-lg pull-xs-right btn-primary" type_="button" onClick=(self.handle(submitNewArticle))>
                   (show("Publish Article"))
                 </button>
               </fieldset>
