@@ -46,37 +46,6 @@ let errorDisplayList = (state) =>
          </ul>
      );
 
-/* let loginUser = (event, self) => {
-  ReactEvent.Mouse.preventDefault(event);
-  let reduceByAuthResult = (_status, jsonPayload) =>
-    jsonPayload
-    |> Js.Promise.then_(
-         (json) => {
-           let newUser = JsonRequests.checkForErrors(json);
-           let updatedState =
-             switch newUser {
-             | Some(errors) => {
-                 ...self.ReasonReact.state,
-                 hasValidationError: true,
-                 errorList: errors |> JsonRequests.convertErrorsToList
-               }
-             | None =>
-               let loggedIn = JsonRequests.parseNewUser(json);
-               Effects.saveTokenToStorage(loggedIn.user.token);
-               Effects.saveUserToStorage(loggedIn.user.username, loggedIn.user.bio, "");
-               ReasonReact.Router.push("/home");
-               {...self.ReasonReact.state, hasValidationError: false}
-             };
-           /* TODO: Create a reducer to do nothing with succesful login so the state doesn't try to update */
-           let callLoginReducer = (_payload) => Login((updatedState.hasValidationError, updatedState.errorList));
-           self.ReasonReact.send(callLoginReducer)
-           |> Js.Promise.resolve
-         }
-       );
-  JsonRequests.authenticateUser(reduceByAuthResult, Encode.user(self.ReasonReact.state)) |> ignore;
-  self.ReasonReact.send(LoginPending)
-}; */
-
 let reduceByAuthResult = (self, _status, jsonPayload) =>
   jsonPayload
   |> Js.Promise.then_(
