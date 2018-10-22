@@ -28,3 +28,5 @@ tasks.json
 lib/js/*
 npm-debug.log
 .bsb.lock
+.cache/
+dist/
