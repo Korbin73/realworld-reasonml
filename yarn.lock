@@ -479,13 +479,6 @@ browser-resolve@^1.11.2:
   dependencies:
     resolve "1.1.7"
 
-bs-director@^0.0.6:
-  version "0.0.6"
-  resolved "https://registry.yarnpkg.com/bs-director/-/bs-director-0.0.6.tgz#b09f2243d1963242ee0a3ed7a5d8dd5886b37d6d"
-  integrity sha512-AHuD1aoipRoBi/gC8v7Xpq3odo+MUGy7eoWAOJoWvjWwERenIxkhMzgUxngcreo+pgXJiBEd4raZPpCRyN9uyw==
-  dependencies:
-    director "^1.2.8"
-
 bs-fetch@^0.3.0:
   version "0.3.0"
   resolved "https://registry.yarnpkg.com/bs-fetch/-/bs-fetch-0.3.0.tgz#60c64457359d0c7e0798d5a04db8987d16c4f8f3"
@@ -852,11 +845,6 @@ diff@^3.2.0:
   version "3.5.0"
   resolved "https://registry.yarnpkg.com/diff/-/diff-3.5.0.tgz#800c0dd1e0a8bfbc95835c202ad220fe317e5a12"
   integrity sha512-A46qtFgd+g7pDZinpnwiRJtxbC1hpgf0uzP3iG89scHk0AUC7A1TGxf5OiiOUv/JMZR8GOt8hL900hV0bOy5xA==
-
-director@^1.2.8:
-  version "1.2.8"
-  resolved "https://registry.yarnpkg.com/director/-/director-1.2.8.tgz#c6d9b4dd890e9aff5365183fe9cc8e73994cf2d5"
-  integrity sha1-xtm03YkOmv9TZRg/6cyOc5lM8tU=
 
 domexception@^1.0.1:
   version "1.0.1"
