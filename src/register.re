@@ -103,7 +103,7 @@ let make = (_children) => {
       ReasonReact.Update({...state, hasValidationError: hasError, errorList})
     },
   render: (self) => {
-    let {ReasonReact.state, handle} = self;
+    let {ReasonReact.state} = self;
     <div className="auth-page">
       <div className="container page">
         <div className="row">
