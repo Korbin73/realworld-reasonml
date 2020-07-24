@@ -15,7 +15,7 @@ type action =
   | PasswordUpdate(string)
   | LoginPending;
 
-let goToRegister = (event, self) => {
+let goToRegister = (event, _self) => {
   navigateTo("/register", event)
 };
 
