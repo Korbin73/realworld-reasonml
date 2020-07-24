@@ -1,5 +1,5 @@
 open Models;
-let show = ReasonReact.string;
+// let show = ReasonReact.string;
 
 let defaultAuthor = {
   username: "",
@@ -21,72 +21,80 @@ let defaultArticle = {
   author: defaultAuthor
 };
 
-type route =
-  | Home
-  | Register
-  | Login
-  | CreateArticle
-  | EditArticle
-  | Article
-  | Profile
-  | Settings;
+// type route =
+//   | Home
+//   | Register
+//   | Login
+//   | CreateArticle
+//   | EditArticle
+//   | Article
+//   | Profile
+//   | Settings;
 
-type state = {
-  currentArticle: article,
-  route
-};
+// type state = {
+//   currentArticle: article,
+//   route
+// };
 
-type action =
-  | SetCurrentArticle(article)
-  | ChangeRoute(route);
+// type action =
+//   | SetCurrentArticle(article)
+//   | ChangeRoute(route);
 
-let articleCallback = (self, currentArticle) => {
-  self.ReasonReact.send(SetCurrentArticle(currentArticle))
-};
+// let articleCallback = (self, currentArticle) => {
+//   self.ReasonReact.send(SetCurrentArticle(currentArticle))
+// };
 
-let mapUrlToRoute = (url: ReasonReact.Router.url) => 
-  switch (url.path) {
-  | ["home"] => Home
-  | ["register"] => Register
-  | ["login"] => Login
-  | ["createarticle"] => CreateArticle
-  | ["editarticle"] => EditArticle
-  | ["article"] => Article
-  | ["profile"] => Profile
-  | ["settings"] => Settings
-  | _ => Login
-  };
+// let mapUrlToRoute = (url: ReasonReact.Router.url) => 
+//   switch (url.path) {
+//   | ["home"] => Home
+//   | ["register"] => Register
+//   | ["login"] => Login
+//   | ["createarticle"] => CreateArticle
+//   | ["editarticle"] => EditArticle
+//   | ["article"] => Article
+//   | ["profile"] => Profile
+//   | ["settings"] => Settings
+//   | _ => Login
+//   };
 
-let component = ReasonReact.reducerComponent("Body");
-/* Just like any other variant data can be carried around with variants with the routes */
-let make = (_children) => {
-  ...component,
-  initialState: () => { currentArticle: defaultArticle, route: Home },
-  reducer: (action, state) =>
-    switch action {
-    | SetCurrentArticle(article) => ReasonReact.Update({...state, currentArticle: article})
-    | ChangeRoute(route) => ReasonReact.Update({...state, route: route})
-    },
-  didMount: self => {
-    let watchId = ReasonReact.Router.watchUrl(url =>
-      self.send(ChangeRoute(url |> mapUrlToRoute))
-    );
-    self.onUnmount(() => ReasonReact.Router.unwatchUrl(watchId));
-  },
-  render: (self) => {
-    /* let {ReasonReact.state, reduce} = self; */
-    let article = self.state.currentArticle;
-    let select_subpage = 
-      switch self.state.route {
-      | Home => <Home articleCallback=articleCallback(self) />
-      | Register => <Register />
-      | Login => <Login />
-      | Settings => <Settings />
-      | Article => <Article article />
-      | CreateArticle => <CreateArticle />
-      | EditArticle => <Article article />
-      | Profile => <Profile articleCallback=articleCallback(self) />
-      };
-    <div> <Header /> <div> { select_subpage} </div> <Footer /> </div>
-  }
-};
+type state = { currentArticle: Models.article };
+
+[@react.component]
+let make = () => {
+  let (article, setArticle) = React.useState(_ => defaultArticle );
+
+  <>
+    <div> 
+      <Header/>
+    </div>
+  </>
+  // ...component,
+  // initialState: () => { currentArticle: defaultArticle, route: Home },
+  // reducer: (action, state) =>
+  //   switch action {
+  //   | SetCurrentArticle(article) => ReasonReact.Update({...state, currentArticle: article})
+  //   | ChangeRoute(route) => ReasonReact.Update({...state, route: route})
+  //   },
+  // didMount: self => {
+  //   let watchId = ReasonReact.Router.watchUrl(url =>
+  //     self.send(ChangeRoute(url |> mapUrlToRoute))
+  //   );
+  //   self.onUnmount(() => ReasonReact.Router.unwatchUrl(watchId));
+  // },
+  // render: (self) => {
+  //   /* let {ReasonReact.state, reduce} = self; */
+  //   let article = self.state.currentArticle;
+  //   let select_subpage = 
+  //     switch self.state.route {
+  //     | Home => <Home articleCallback=articleCallback(self) />
+  //     | Register => <Register />
+  //     | Login => <Login />
+  //     | Settings => <Settings />
+  //     | Article => <Article article />
+  //     | CreateArticle => <CreateArticle />
+  //     | EditArticle => <Article article />
+  //     | Profile => <Profile articleCallback=articleCallback(self) />
+  //     };
+  //   <div> <Header /> <div> { select_subpage} </div> <Footer /> </div>
+  // }
+}

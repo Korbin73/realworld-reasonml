@@ -212,7 +212,8 @@ let renderArticle = (self, articleCallback, index, article) => {
 
 let component = ReasonReact.reducerComponent("Home");
 
-let make = (~articleCallback, _children) => {
+[@react.component]
+let make = (~articleCallback) => {
   ...component,
   initialState: initialState,
   reducer: (action, state) =>
