@@ -1,4 +1,4 @@
 let navigateTo = (path, event) => {
   ReactEvent.Mouse.preventDefault(event);
-  ReasonReact.Router.push("#" ++ path)
+  ReasonReact.Router.push("#" ++ path);
 };

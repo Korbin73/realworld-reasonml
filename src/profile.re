@@ -1,7 +1,7 @@
 open Models;
 open Utils;
 
-let show = ReasonReact.string;
+let show = React.string;
 
 type state = {
   myArticles: array(article),
@@ -15,12 +15,12 @@ type state = {
   isFavArticleDisplay: ReactDOMRe.style,
   articles: array(article),
   myFeedActiveClass: string,
-  favfeedActiveClass: string
+  favfeedActiveClass: string,
 };
 
 let initialState = {
   myArticles: [||],
-  favoriteArticles:[||],
+  favoriteArticles: [||],
   showMyArticles: true,
   showFavArticle: false,
   username: "",
@@ -30,34 +30,33 @@ let initialState = {
   myFeedActiveClass: "nav-link disabled",
   favfeedActiveClass: "nav-link active",
   articles: [||],
-  image: ""
+  image: "",
 };
 
 type action =
-  | MyArticles (array(article))
-  | FavoriteArticle (array(article))
+  | MyArticles(array(article))
+  | FavoriteArticle(array(article))
   | NoData
   | PendingMyArticles
   | PendingFavoriteArticles
-  | CurrentUserFetched ((string, string, string));
+  | CurrentUserFetched((string, string, string));
 
-
-let getDefaultFieldFor = (fieldName) =>
-  switch fieldName {
-    | Some(name) => name
-    | None => ""
+let getDefaultFieldFor = fieldName =>
+  switch (fieldName) {
+  | Some(name) => name
+  | None => ""
   };
 
-  let decodeAuthor = (json) =>
+let decodeAuthor = json =>
   Json.Decode.{
     username: json |> field("username", string),
     bio: json |> optional(field("bio", string)),
     image: json |> optional(field("image", string)),
-    following: json |> field("following", bool)
+    following: json |> field("following", bool),
   };
 
 let extractArticleList = (jsonArticles: Js.Json.t) => {
-  let parseArticle = (rawArticle) =>
+  let parseArticle = rawArticle =>
     Json.Decode.{
       slug: rawArticle |> field("slug", string),
       title: rawArticle |> field("title", string),
@@ -68,68 +67,75 @@ let extractArticleList = (jsonArticles: Js.Json.t) => {
       updatedAt: rawArticle |> field("updatedAt", string),
       favorited: rawArticle |> field("favorited", bool),
       favoritesCount: rawArticle |> field("favoritesCount", int),
-      author: rawArticle |> field("author", decodeAuthor)
+      author: rawArticle |> field("author", decodeAuthor),
     };
   Json.Decode.(jsonArticles |> field("articles", array(parseArticle)));
 };
 
-let reduceMyArtcles = (reduceFunc, _status, payload) => {
-  payload |> Js.Promise.then_((result) => {
-    let parsedArticles = Js.Json.parseExn(result);
+let reduceMyArtcles = (reduceFunc, _status, payload) =>
+  payload
+  |> Js.Promise.then_(result => {
+       let parsedArticles = Js.Json.parseExn(result);
 
-    let articleList = Json.Decode.{
-      articles: parsedArticles |> extractArticleList,
-      articlesCount: parsedArticles |> field("articlesCount", int)
-    };
-    reduceFunc(articleList.articles);
+       let articleList =
+         Json.Decode.{
+           articles: parsedArticles |> extractArticleList,
+           articlesCount: parsedArticles |> field("articlesCount", int),
+         };
+       reduceFunc(articleList.articles);
 
-    articleList |> Js.Promise.resolve;
-  });
-
-};
+       articleList |> Js.Promise.resolve;
+     });
 
 let clickMyArticles = (event, self) => {
   event->ReactEvent.Mouse.preventDefault;
-  let reduceFunc = (articles) => self.ReasonReact.send(MyArticles(articles));
+  let reduceFunc = articles => self.ReasonReact.send(MyArticles(articles));
 
-  JsonRequests.getMyArticles(reduceMyArtcles(reduceFunc), self.ReasonReact.state.username, Effects.getTokenFromStorage())
+  JsonRequests.getMyArticles(
+    reduceMyArtcles(reduceFunc),
+    self.ReasonReact.state.username,
+    Effects.getTokenFromStorage(),
+  )
   |> ignore;
 
-  self.ReasonReact.send(PendingMyArticles)
+  self.ReasonReact.send(PendingMyArticles);
 };
 
-let clickProfileSettings = (event, _self) => {
-  navigateTo("/settings", event); 
-};
+let clickProfileSettings = (event, _self) => navigateTo("/settings", event);
 
 let clickMyFavorites = (event, self) => {
   event->ReactEvent.Mouse.preventDefault;
-  let reduceFunc = (articles) => self.ReasonReact.send(FavoriteArticle(articles));
-  JsonRequests.getFavoritedArticles(reduceMyArtcles(reduceFunc), self.ReasonReact.state.username, Effects.getTokenFromStorage())
+  let reduceFunc = articles =>
+    self.ReasonReact.send(FavoriteArticle(articles));
+  JsonRequests.getFavoritedArticles(
+    reduceMyArtcles(reduceFunc),
+    self.ReasonReact.state.username,
+    Effects.getTokenFromStorage(),
+  )
   |> ignore;
 
-  self.ReasonReact.send(PendingFavoriteArticles)
+  self.ReasonReact.send(PendingFavoriteArticles);
 };
 
-/* side effect */
-let reduceByAuthArticles = (self, _status, jsonPayload) =>  {
-  jsonPayload |> Js.Promise.then_((payload) => {
-    let jsonArticles = Js.Json.parseExn(payload);
-    let articleCount = Json.Decode.(jsonArticles |> field("articlesCount", int));
+let reduceByAuthArticles = (self, _status, jsonPayload) =>
+  jsonPayload
+  |> Js.Promise.then_(payload => {
+       let jsonArticles = Js.Json.parseExn(payload);
+       let articleCount =
+         Json.Decode.(jsonArticles |> field("articlesCount", int));
 
-    switch articleCount {
-      | count when count > 0 => self.ReasonReact.send(MyArticles(extractArticleList(jsonArticles)))
-      | _ => self.ReasonReact.send(NoData)
-    };
+       switch (articleCount) {
+       | count when count > 0 =>
+         self.ReasonReact.send(MyArticles(extractArticleList(jsonArticles)))
+       | _ => self.ReasonReact.send(NoData)
+       };
 
-    payload |> Js.Promise.resolve;
-  });
-};
+       payload |> Js.Promise.resolve;
+     });
 
-/* These functions were copied from  */
 let goToArticle = (articleCallback, article, event, _self) => {
   articleCallback(article);
-  navigateTo("/article", event)
+  navigateTo("/article", event);
 };
 
 let displayImage =
@@ -141,24 +147,37 @@ let renderArticle = (self, articleCallback, isFavorites, index, article) =>
   <div key=(string_of_int(index)) className="article-preview">
     <div>
       <div className="article-meta">
-        (if (isFavorites){
-          <a href="profile.html"> <img src=(displayImage(article.author.image))/> </a>
-        }else{
-          <a href="#"/>
-        })        
+        (
+          if (isFavorites) {
+            <a href="profile.html">
+              <img src=(displayImage(article.author.image)) />
+            </a>;
+          } else {
+            <a href="#" />;
+          }
+        )
         <div className="info">
           <a href="" className="author"> (show(article.author.username)) </a>
-          <span className="date"> (show(Js.Date.fromString(article.createdAt) |> Js.Date.toDateString)) </span>
+          <span className="date">
+            (
+              show(
+                Js.Date.fromString(article.createdAt) |> Js.Date.toDateString,
+              )
+            )
+          </span>
         </div>
         <button className="btn btn-outline-primary btn-sm pull-xs-right">
           <i className="ion-heart" />
           (show(string_of_int(article.favoritesCount)))
         </button>
       </div>
-      <a href="#" onClick=(self.ReasonReact.handle(goToArticle(articleCallback, article))) className="preview-link">
-        <h1>
-          (show(article.title))
-        </h1>
+      <a
+        href="#"
+        onClick=(
+          self.ReasonReact.handle(goToArticle(articleCallback, article))
+        )
+        className="preview-link">
+        <h1> (show(article.title)) </h1>
         <p> (show(article.description)) </p>
         <span> (show("Read more...")) </span>
       </a>
@@ -166,58 +185,68 @@ let renderArticle = (self, articleCallback, isFavorites, index, article) =>
   </div>;
 
 let component = ReasonReact.reducerComponent("Profile");
-let make = (~articleCallback, _children) => {
+
+[@react.component]
+let make = (~articleCallback) => {
   ...component,
   initialState: () => initialState,
   reducer: (action, state) =>
-    switch action {
-    | MyArticles(articleList) => ReasonReact.Update({
-      ...state,
-      isMyArticleDisplay: ReactDOMRe.Style.make(~display ="block",()),
-      isFavArticleDisplay: ReactDOMRe.Style.make(~display="none", ()),
-      myArticles: articleList,
-      myFeedActiveClass: "nav-link active",
-      favfeedActiveClass: "nav-link disabled"
-    })
-    | FavoriteArticle(articleList) => ReasonReact.Update({
-      ...state,
-      isMyArticleDisplay: ReactDOMRe.Style.make(~display="none", ()),
-      isFavArticleDisplay: ReactDOMRe.Style.make(~display="block", ()),
-      favoriteArticles: articleList,
-      myFeedActiveClass: "nav-link disabled",
-      favfeedActiveClass: "nav-link active"
-    })
-    | CurrentUserFetched ((username, bio, image)) => ReasonReact.Update({ ...state, username: username, bio: bio, image: image })
+    switch (action) {
+    | MyArticles(articleList) =>
+      ReasonReact.Update({
+        ...state,
+        isMyArticleDisplay: ReactDOMRe.Style.make(~display="block", ()),
+        isFavArticleDisplay: ReactDOMRe.Style.make(~display="none", ()),
+        myArticles: articleList,
+        myFeedActiveClass: "nav-link active",
+        favfeedActiveClass: "nav-link disabled",
+      })
+    | FavoriteArticle(articleList) =>
+      ReasonReact.Update({
+        ...state,
+        isMyArticleDisplay: ReactDOMRe.Style.make(~display="none", ()),
+        isFavArticleDisplay: ReactDOMRe.Style.make(~display="block", ()),
+        favoriteArticles: articleList,
+        myFeedActiveClass: "nav-link disabled",
+        favfeedActiveClass: "nav-link active",
+      })
+    | CurrentUserFetched((username, bio, image)) =>
+      ReasonReact.Update({...state, username, bio, image})
     | NoData => ReasonReact.NoUpdate
     | PendingFavoriteArticles => ReasonReact.NoUpdate
     | PendingMyArticles => ReasonReact.NoUpdate
     },
-  didMount: (self) => {
+  didMount: self => {
     let (username, bio, image) = Effects.getUserFromStorage();
-    
+
     let currentUsername = getDefaultFieldFor(username);
     let currentBio = getDefaultFieldFor(bio);
     let currentImage = getDefaultFieldFor(image);
     let token = Effects.getTokenFromStorage();
 
-    JsonRequests.getMyArticles(reduceByAuthArticles(self), currentUsername, token) |> ignore;
-    self.ReasonReact.send(CurrentUserFetched((currentUsername, currentBio, currentImage)));
+    JsonRequests.getMyArticles(
+      reduceByAuthArticles(self),
+      currentUsername,
+      token,
+    )
+    |> ignore;
+    self.ReasonReact.send(
+      CurrentUserFetched((currentUsername, currentBio, currentImage)),
+    );
   },
-  render: (self) => {
+  render: self => {
     let {ReasonReact.state} = self;
     <div className="profile-page">
       <div className="user-info">
         <div className="container">
           <div className="row">
             <div className="col-xs-12 col-md-10 offset-md-1">
-              <img src={state.image} className="user-img" />
+              <img src=state.image className="user-img" />
               <h4> (show(state.username)) </h4>
-              <p>
-                (
-                  show(state.bio)
-                )
-              </p>
-              <button className="btn btn-sm btn-outline-secondary action-btn" onClick={self.handle(clickProfileSettings)}>
+              <p> (show(state.bio)) </p>
+              <button
+                className="btn btn-sm btn-outline-secondary action-btn"
+                onClick=(self.handle(clickProfileSettings))>
                 <i className="ion-plus-round" />
                 (show("Edit Profile Settings"))
               </button>
@@ -231,22 +260,48 @@ let make = (~articleCallback, _children) => {
             <div className="articles-toggle">
               <ul className="nav nav-pills outline-active">
                 <li className="nav-item">
-                  <a className=(state.myFeedActiveClass) href="#" onClick=(self.handle(clickMyArticles))> (show("My Articles")) </a>
+                  <a
+                    className=state.myFeedActiveClass
+                    href="#"
+                    onClick=(self.handle(clickMyArticles))>
+                    (show("My Articles"))
+                  </a>
                 </li>
                 <li className="nav-item">
-                  <a className=(state.favfeedActiveClass) href="#" onClick=(self.handle(clickMyFavorites))> (show("Favorited Articles")) </a>
+                  <a
+                    className=state.favfeedActiveClass
+                    href="#"
+                    onClick=(self.handle(clickMyFavorites))>
+                    (show("Favorited Articles"))
+                  </a>
                 </li>
               </ul>
             </div>
-            <div style=(self.state.isMyArticleDisplay)>
-              {Array.mapi(renderArticle(self, articleCallback, false), state.myArticles) |>  ReasonReact.array}
+            <div style=self.state.isMyArticleDisplay>
+              (
+                Array.mapi(
+                  renderArticle(self, articleCallback, false),
+                  state.myArticles,
+                )
+                |> React.array
+              )
             </div>
-            <div style=(self.state.isFavArticleDisplay)>
-              {Array.mapi(renderArticle(self, articleCallback, true), state.favoriteArticles) |>  ReasonReact.array}
+            <div style=self.state.isFavArticleDisplay>
+              (
+                Array.mapi(
+                  renderArticle(self, articleCallback, true),
+                  state.favoriteArticles,
+                )
+                |> React.array
+              )
             </div>
           </div>
         </div>
       </div>
-    </div>
-  }
+    </div>;
+  },
 };
+
+/* side effect */
+
+/* These functions were copied from  */

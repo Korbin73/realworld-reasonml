@@ -1,6 +1,6 @@
 let component = ReasonReact.statelessComponent("Footer");
 
-let show = ReasonReact.string;
+let show = React.string;
 
 let conduit_message = () =>
   <div>
@@ -9,13 +9,14 @@ let conduit_message = () =>
     (show(". Code &amp; design licensed under MIT."))
   </div>;
 
-let make = (_children) => {
+[@react.component]
+let make = () => {
   ...component,
-  render: (_self) =>
+  render: _self =>
     <footer>
       <div className="container">
         <a href="/" className="logo-font"> (show("conduit")) </a>
         <span className="attribution"> (conduit_message()) </span>
       </div>
-    </footer>
+    </footer>,
 };

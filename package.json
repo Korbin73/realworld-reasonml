@@ -16,12 +16,13 @@
   "dependencies": {
     "@glennsl/bs-json": "^3.0.0",
     "bs-fetch": "^0.3.0",
+    "bs-platform": "^8.0.3",
     "react": "^16.5.2",
     "react-dom": "^16.5.2",
-    "reason-react": "^0.5.3"
+    "reason-react": "0.9.1",
+    "upgrade-reason-react": "https://github.com/chenglou/upgrade-reason-react#0.6.0-to-0.7.0"
   },
   "devDependencies": {
-    "@glennsl/bs-jest": "^0.3.2",
-    "bs-platform": "^4.0.6"
+    "@glennsl/bs-jest": "^0.5.1"
   }
 }

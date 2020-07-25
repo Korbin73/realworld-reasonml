@@ -1,12 +1,12 @@
 open Utils;
 
-let show = ReasonReact.string;
+let show = React.string;
 
 type state = {
   email: string,
   password: string,
   hasValidationError: bool,
-  errorList: list(string)
+  errorList: list(string),
 };
 
 type action =
@@ -15,81 +15,101 @@ type action =
   | PasswordUpdate(string)
   | LoginPending;
 
-let goToRegister = (event, _self) => {
-  navigateTo("/register", event)
-};
+let goToRegister = (event, _self) => navigateTo("/register", event);
 
 module Encode = {
-  let encodeUserCredentials = (creds) => {
+  let encodeUserCredentials = creds => {
     open! Json.Encode;
-    object_([("email", string(creds.email)), ("password", string(creds.password))])
+    object_([
+      ("email", string(creds.email)),
+      ("password", string(creds.password)),
+    ]);
   };
-  let user = (topLevelUser) =>
+  let user = topLevelUser =>
     Json.Encode.(object_([("user", encodeUserCredentials(topLevelUser))]));
 
-  let currentUser = (username, bio) => 
-    Json.Encode.([("username", string(username)), ("bio", string(bio))]);
+  let currentUser = (username, bio) =>
+    Json.Encode.[("username", string(username)), ("bio", string(bio))];
 };
 
 let updateEmail = (event, self) =>
   self.ReasonReact.send(EmailUpdate(ReactEvent.Form.target(event)##value));
 
 let updatePassword = (event, self) =>
-  self.ReasonReact.send(PasswordUpdate(ReactEvent.Form.target(event)##value));
+  self.ReasonReact.send(
+    PasswordUpdate(ReactEvent.Form.target(event)##value),
+  );
 
-let errorDisplayList = (state) =>
-  List.filter((errorMessage) => String.length(errorMessage) > 0, state.errorList)
-  |> List.mapi(
-       (acc, errorMessage) =>
-         <ul className="error-messages" key=(string_of_int(acc))>
-           <li> (show(errorMessage)) </li>
-         </ul>
+let errorDisplayList = state =>
+  List.filter(
+    errorMessage => String.length(errorMessage) > 0,
+    state.errorList,
+  )
+  |> List.mapi((acc, errorMessage) =>
+       <ul className="error-messages" key=(string_of_int(acc))>
+         <li> (show(errorMessage)) </li>
+       </ul>
      );
 
 let reduceByAuthResult = (self, _status, jsonPayload) =>
   jsonPayload
-  |> Js.Promise.then_(
-     (json) => {
+  |> Js.Promise.then_(json => {
        let newUser = JsonRequests.checkForErrors(json);
        let updatedState =
-         switch newUser {
+         switch (newUser) {
          | Some(errors) => {
              ...self.ReasonReact.state,
              hasValidationError: true,
-             errorList: errors |> JsonRequests.convertErrorsToList
+             errorList: errors |> JsonRequests.convertErrorsToList,
            }
          | None =>
            let loggedIn = JsonRequests.parseNewUser(json);
            Effects.saveTokenToStorage(loggedIn.user.token);
-           Effects.saveUserToStorage(loggedIn.user.username, loggedIn.user.bio, "");
+           Effects.saveUserToStorage(
+             loggedIn.user.username,
+             loggedIn.user.bio,
+             "",
+           );
            ReasonReact.Router.push("/home");
-           {...self.ReasonReact.state, hasValidationError: false}
+           {...self.ReasonReact.state, hasValidationError: false};
          };
-       /* TODO: Create a reducer to do nothing with succesful login so the state doesn't try to update */  
-       self.ReasonReact.send(Login((updatedState.hasValidationError, updatedState.errorList)))
-       |> Js.Promise.resolve
-     }
-   );
+       self.ReasonReact.send(
+         Login((updatedState.hasValidationError, updatedState.errorList)),
+       )
+       |> Js.Promise.resolve;
+     });
 
 let loginCurrentUser = (event, self) => {
   ReactEvent.Mouse.preventDefault(event);
-  JsonRequests.authenticateUser(reduceByAuthResult(self), Encode.user(self.ReasonReact.state)) |> ignore;
-  self.ReasonReact.send(LoginPending)
+  JsonRequests.authenticateUser(
+    reduceByAuthResult(self),
+    Encode.user(self.ReasonReact.state),
+  )
+  |> ignore;
+  self.ReasonReact.send(LoginPending);
 };
 
 let component = ReasonReact.reducerComponent("Login");
 
-let make = (_children) => {
+[@react.component]
+let make = () => {
   ...component,
-  initialState: () => {email: "", password: "", hasValidationError: false, errorList: []},
+  initialState: () => {
+    email: "",
+    password: "",
+    hasValidationError: false,
+    errorList: [],
+  },
   reducer: (action, state) =>
-    switch action {
+    switch (action) {
     | EmailUpdate(value) => ReasonReact.Update({...state, email: value})
-    | PasswordUpdate(value) => ReasonReact.Update({...state, password: value})
-    | Login((hasError, errorList)) => ReasonReact.Update({...state, hasValidationError: hasError, errorList})
+    | PasswordUpdate(value) =>
+      ReasonReact.Update({...state, password: value})
+    | Login((hasError, errorList)) =>
+      ReasonReact.Update({...state, hasValidationError: hasError, errorList})
     | LoginPending => ReasonReact.NoUpdate
     },
-  render: (self) => {
+  render: self => {
     let {ReasonReact.state, handle} = self;
     <div className="auth-page">
       <div className="container page">
@@ -97,13 +117,15 @@ let make = (_children) => {
           <div className="col-md-6 offset-md-3 col-xs-12">
             <h1 className="text-xs-center"> (show("Sign in")) </h1>
             <p className="text-xs-center">
-              <a href="#" onClick={handle(goToRegister)}> (show("Need an account?")) </a>
+              <a href="#" onClick=(handle(goToRegister))>
+                (show("Need an account?"))
+              </a>
             </p>
             (
               if (state.hasValidationError) {
-                Array.of_list(errorDisplayList(state)) |> ReasonReact.array
+                Array.of_list(errorDisplayList(state)) |> React.array;
               } else {
-                ReasonReact.null
+                React.null;
               }
             )
             <form>
@@ -134,6 +156,8 @@ let make = (_children) => {
           </div>
         </div>
       </div>
-    </div>
-  }
+    </div>;
+  },
 };
+
+/* TODO: Create a reducer to do nothing with succesful login so the state doesn't try to update */
