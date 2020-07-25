@@ -21,28 +21,22 @@ let defaultArticle = {
   author: defaultAuthor
 };
 
-// type route =
-//   | Home
-//   | Register
-//   | Login
-//   | CreateArticle
-//   | EditArticle
-//   | Article
-//   | Profile
-//   | Settings;
+type route =
+  | Home
+  | Register
+  | Login
+  | CreateArticle
+  | EditArticle
+  | Article
+  | Profile
+  | Settings;
 
-// type state = {
-//   currentArticle: article,
-//   route
-// };
+type action =
+  | SetCurrentArticle(article);
 
-// type action =
-//   | SetCurrentArticle(article)
-//   | ChangeRoute(route);
-
-// let articleCallback = (self, currentArticle) => {
-//   self.ReasonReact.send(SetCurrentArticle(currentArticle))
-// };
+let articleCallback = (self, currentArticle) => {
+  self.ReasonReact.send(SetCurrentArticle(currentArticle))
+};
 
 // let mapUrlToRoute = (url: ReasonReact.Router.url) => 
 //   switch (url.path) {
@@ -57,30 +51,34 @@ let defaultArticle = {
 //   | _ => Login
 //   };
 
-type state = { currentArticle: Models.article };
+type state = { 
+  currentArticle: Models.article
+};
 
 [@react.component]
 let make = () => {
   let (article, setArticle) = React.useState(_ => defaultArticle );
+  let (state, dispatch) = React.useReducer(
+    (state, action) => 
+      switch action {
+      | SetCurrentArticle(article) => {currentArticle: article}
+      },
+      {currentArticle: defaultArticle}
+    );
+
 
   <>
     <div> 
       <Header/>
     </div>
   </>
-  // ...component,
-  // initialState: () => { currentArticle: defaultArticle, route: Home },
+
   // reducer: (action, state) =>
   //   switch action {
   //   | SetCurrentArticle(article) => ReasonReact.Update({...state, currentArticle: article})
   //   | ChangeRoute(route) => ReasonReact.Update({...state, route: route})
   //   },
-  // didMount: self => {
-  //   let watchId = ReasonReact.Router.watchUrl(url =>
-  //     self.send(ChangeRoute(url |> mapUrlToRoute))
-  //   );
-  //   self.onUnmount(() => ReasonReact.Router.unwatchUrl(watchId));
-  // },
+
   // render: (self) => {
   //   /* let {ReasonReact.state, reduce} = self; */
   //   let article = self.state.currentArticle;
