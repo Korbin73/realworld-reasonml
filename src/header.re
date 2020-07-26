@@ -1,16 +1,13 @@
 open Utils;
 
-let component = ReasonReact.statelessComponent("Header");
-
 let show = React.string;
 
 let pointerStyle = () => ReactDOMRe.Style.make(~cursor="pointer", ());
 
-let goToRegistration = (event) => navigateTo("/register", event);
-let goToHome = (event) => navigateTo("/home", event);
-let goToSettings = (event) => navigateTo("/settings", event);
-let goToCreateArticle = (event) =>
-  navigateTo("/article/create", event);
+let goToRegistration = navigateTo("register");
+let goToHome = navigateTo("home");
+let goToSettings = navigateTo("settings");
+let goToCreateArticle = navigateTo("createarticle");
 
 let displayUsername = () => {
   let (optionalName, _, _) = Effects.getUserFromStorage();
@@ -55,7 +52,7 @@ let make = () => {
                 className="nav-link active"
                 style=(pointerStyle())
                 href="#"
-                onClick={event => goToHome(event)}>
+                onClick={goToHome}>
                 (show("Home"))
               </a>
             </li>
@@ -64,7 +61,7 @@ let make = () => {
                 className="nav-link"
                 style=(pointerStyle())
                 href="#"
-                onClick={event => goToCreateArticle(event)}>
+                onClick={goToCreateArticle}>
                 <i className="ion-compose" />
                 (show(" New Post"))
               </a>
@@ -74,7 +71,7 @@ let make = () => {
                 className="nav-link"
                 style=(pointerStyle())
                 href="#"
-                onClick={event => goToSettings(event)}>
+                onClick={goToSettings}>
                 <i className="ion-gear-a" />
                 (show(" Settings"))
               </a>

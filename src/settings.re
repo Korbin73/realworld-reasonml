@@ -35,39 +35,24 @@ module Encode = {
   let token = currentUser => Json.Encode.[("token", string(currentUser))];
 };
 
-let updateSettings = (event, {ReasonReact.state}) => {
-  event->ReactEvent.Mouse.preventDefault;
-  let responseCatch = (_status, payload) => {
-    ReasonReact.Router.push("/profile");
-    payload
-    |> Js.Promise.then_(result => {
-         Js.log(result);
-         result |> Js.Promise.resolve;
-       })
-    |> ignore;
-  };
-  JsonRequests.updateUser(
-    responseCatch,
-    Encode.user(state),
-    Effects.getTokenFromStorage(),
-  )
-  |> ignore;
-};
-
-let updateImage = (event, {ReasonReact.send}) =>
-  send(UpdateImage(ReactEvent.Form.target(event)##value));
-
-let updateName = (event, {ReasonReact.send}) =>
-  send(UpdateName(ReactEvent.Form.target(event)##value));
-
-let updateBio = (event, {ReasonReact.send}) =>
-  send(UpdateBio(ReactEvent.Form.target(event)##value));
-
-let updateEmail = (event, {ReasonReact.send}) =>
-  send(UpdateEmail(ReactEvent.Form.target(event)##value));
-
-let updatePassword = (event, {ReasonReact.send}) =>
-  send(UpdatePassword(ReactEvent.Form.target(event)##value));
+// let updateSettings = (event, state) => {
+//   event->ReactEvent.Mouse.preventDefault;
+//   let responseCatch = (_status, payload) => {
+//     ReasonReact.Router.push("/profile");
+//     payload
+//     |> Js.Promise.then_(result => {
+//          Js.log(result);
+//          result |> Js.Promise.resolve;
+//        })
+//     |> ignore;
+//   };
+//   JsonRequests.updateUser(
+//     responseCatch,
+//     Encode.user(state),
+//     Effects.getTokenFromStorage(),
+//   )
+//   |> ignore;
+// };
 
 let getField =
   fun
@@ -78,25 +63,26 @@ let getField =
 
 [@react.component]
 let make = () => {
-  
-  // initialState: () => {image: "", name: "", bio: "", email: "", password: ""},
-  // reducer: (action, state) =>
-  //   switch (action) {
-  //   | UpdateEmail(email) => ReasonReact.Update({...state, email})
-  //   | UpdatePassword(password) => ReasonReact.Update({...state, password})
-  //   | UpdateBio(bio) => ReasonReact.Update({...state, bio})
-  //   | UpdateImage(image) => ReasonReact.Update({...state, image})
-  //   | UpdateName(name) => ReasonReact.Update({...state, name})
-  //   | SettingsUpdated => ReasonReact.NoUpdate
-  //   | SettingsFetched(updatedState) =>
-  //     ReasonReact.Update({
-  //       ...state,
-  //       email: updatedState.email,
-  //       name: updatedState.name,
-  //       bio: updatedState.bio,
-  //       image: updatedState.image,
-  //     })
-  //   },
+  let initialState = {image: "", name: "", bio: "", email: "", password: ""};
+  let (state, dispatch) = React.useReducer((state, action) => 
+    switch action {
+    | UpdateEmail(email) => {...state, email}
+    | UpdatePassword(password) => {...state, password}
+    | UpdateBio(bio) => {...state, bio}
+    | UpdateImage(image) => {...state, image}
+    | UpdateName(name) => {...state, name}
+    | SettingsUpdated => state
+    | SettingsFetched(updatedSettings) => { 
+        ...state, 
+        email: updatedSettings.email, 
+        name: updatedSettings.name,
+        bio: updatedSettings.bio,
+        image: updatedSettings.image
+      }
+    },
+    initialState
+  );
+  // React.useEffect1(() => {}, state);
   // didMount: self => {
   //   let reduceCurrentUser = (_status, jsonPayload) =>
   //     jsonPayload
@@ -147,8 +133,8 @@ let make = () => {
                     className="form-control"
                     type_="text"
                     placeholder="URL of profile picture"
-                    value=self.state.image
-                    onChange=(self.handle(updateImage))
+                    value=state.image
+                    onChange={event => dispatch(UpdateImage(ReactEvent.Form.target(event)##value))}
                   />
                 </fieldset>
                 <fieldset className="form-group">
@@ -156,8 +142,8 @@ let make = () => {
                     className="form-control form-control-lg"
                     type_="text"
                     placeholder="Your Name"
-                    value=self.state.name
-                    onChange=(self.handle(updateName))
+                    value=state.name
+                    onChange={event => dispatch(UpdateName(ReactEvent.Form.target(event)##value))}
                   />
                 </fieldset>
                 <fieldset className="form-group">
@@ -165,8 +151,8 @@ let make = () => {
                     className="form-control form-control-lg"
                     rows=8
                     placeholder="Short bio about you"
-                    value=self.state.bio
-                    onChange=(self.handle(updateBio))
+                    value=state.bio
+                    onChange={event => dispatch(UpdateBio(ReactEvent.Form.target(event)##value))}
                   />
                 </fieldset>
                 <fieldset className="form-group">
@@ -174,8 +160,8 @@ let make = () => {
                     className="form-control form-control-lg"
                     type_="text"
                     placeholder="Email"
-                    value=self.state.email
-                    onChange=(self.handle(updateEmail))
+                    value=state.email
+                    onChange={event => dispatch(UpdateEmail(ReactEvent.Form.target(event)##value))}
                   />
                 </fieldset>
                 <fieldset className="form-group">
@@ -183,13 +169,13 @@ let make = () => {
                     className="form-control form-control-lg"
                     type_="password"
                     placeholder="Password"
-                    value=self.state.password
-                    onChange=(self.handle(updatePassword))
+                    value=state.password
+                    onChange={event => dispatch(UpdatePassword(ReactEvent.Form.target(event)##value))}
                   />
                 </fieldset>
                 <button
                   className="btn btn-lg btn-primary pull-xs-right"
-                  onClick=(self.handle(updateSettings))>
+                  onClick={_ => ()}>
                   (show("Update Settings"))
                 </button>
               </fieldset>

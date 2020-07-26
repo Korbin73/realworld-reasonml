@@ -1,7 +1,7 @@
-open Models;
-let show = React.string;
+open Models
+let show = React.string
 
-let defaultAuthor = {username: "", bio: None, image: None, following: false};
+let defaultAuthor = {username: "", bio: None, image: None, following: false}
 
 let defaultArticle = {
   slug: "",
@@ -14,7 +14,7 @@ let defaultArticle = {
   favorited: false,
   favoritesCount: 0,
   author: defaultAuthor,
-};
+}
 
 type route =
   | Home
@@ -24,54 +24,28 @@ type route =
   | EditArticle
   | Article
   | Profile
-  | Settings;
+  | Settings
 
 type state = {
-  currentArticle: article,
-  route,
-};
+  currentArticle: article
+}
 
 type action =
-  | SetCurrentArticle(article)
-  | ChangeRoute(route);
+  | SetCurrentArticle(article);
 
 let articleCallback = (self, currentArticle) =>
   self.ReasonReact.send(SetCurrentArticle(currentArticle));
 
-let mapUrlToRoute = (url: ReasonReact.Router.url) =>
-  switch (url.path) {
-  | ["home"] => Home
-  | ["register"] => Register
-  | ["login"] => Login
-  | ["createarticle"] => CreateArticle
-  | ["editarticle"] => EditArticle
-  | ["article"] => Article
-  | ["profile"] => Profile
-  | ["settings"] => Settings
-  | _ => Login
-  };
-
-let component = ReasonReact.reducerComponent("Body");
-
 [@react.component]
 let make = () => {
-  ...component,
-  initialState: () => {currentArticle: defaultArticle, route: Home},
-  reducer: (action, state) =>
-    switch (action) {
-    | SetCurrentArticle(article) =>
-      ReasonReact.Update({...state, currentArticle: article})
-    | ChangeRoute(route) => ReasonReact.Update({...state, route})
+  let (_state, _dispatch) = React.useReducer((_state, action) => 
+    switch action {
+    | SetCurrentArticle(article) => {currentArticle: article}
     },
-  didMount: self => {
-    let watchId =
-      ReasonReact.Router.watchUrl(url =>
-        self.send(ChangeRoute(url |> mapUrlToRoute))
-      );
-    self.onUnmount(() => ReasonReact.Router.unwatchUrl(watchId));
-  },
-  render: self => {
-    let article = self.state.currentArticle;
+    {currentArticle: defaultArticle}
+  )
+  
+    // let article = self.state.currentArticle;
     // let select_subpage =
     //   switch (self.state.route) {
     //   | Home => <Home articleCallback=(articleCallback(self)) />
@@ -83,22 +57,26 @@ let make = () => {
     //   | EditArticle => <Article article />
     //   | Profile => <Profile articleCallback=(articleCallback(self)) />
     //   };
-    <div> <Header /> <div> <Settings /> </div> <Footer /> </div>;
-  },
-};
-/**
- * This is a wrapper created to let this component be used from the new React api.
- * Please convert this component to a [@react.component] function and then remove this wrapping code.
- */
-let make =
-  ReasonReactCompat.wrapReasonReactForReact(
-    ~component, (reactProps: {. "children": 'children}) =>
-    make(reactProps##children)
-  );
-[@bs.obj]
-external makeProps: (~children: 'children, unit) => {. "children": 'children} =
-  "";
 
-/* Just like any other variant data can be carried around with variants with the routes */
+    let url = ReasonReactRouter.useUrl();
 
-/* let {ReasonReact.state, reduce} = self; */
+    <div> 
+      <Header /> 
+      <div> {        
+        switch url.hash {
+        | "home" =>  <div>{React.string("Home by navigation")}</div>
+        | "register" => <Register />
+        | "login" => <div>{React.string("login")}</div>
+        | "createarticle" => <div>{React.string("creating an article")}</div>
+        | "editarticle" => <div>{React.string("Editing an article")}</div>
+        | "article" => <div>{React.string("showing article")}</div>
+        | "profile" => <div>{React.string("profile")}</div>
+        | "settings" => <div>{React.string("settings")}</div>
+        | _ => <div>{React.string("Home frome")}</div>
+        };
+      }
+      </div> 
+      <Footer /> 
+    </div>;
+  
+}
